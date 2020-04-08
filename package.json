@@ -1,0 +1,23 @@
+{
+  "name": "@og/time",
+  "version": "0.0.2",
+  "main": "lib/index.js",
+  "scripts": {
+    "doc": "fis3 release -d ./ -r ./lib -f compile/fis-conf.js",
+    "dev": "fis3 release -w -d ./ -r ./lib -f compile/fis-conf.js",
+    "test": "jest -w",
+    "test:ci": "jest",
+    "release": "jest && tsc && npm run doc"
+  },
+  "devDependencies": {
+    "@types/jest": "^24.0.18",
+    "jest": "^24.9.0",
+    "ts-jest": "^24.0.2",
+    "typescript": "^3.6.2"
+  },
+  "dependencies": {
+    "dayjs": "^1.8.23",
+    "global": "^4.4.0",
+    "serve": "^11.3.0"
+  }
+}
