@@ -16,6 +16,7 @@
     "typescript": "^3.6.2"
   },
   "dependencies": {
+    "clone": "^2.1.2",
     "dayjs": "^1.8.23",
     "global": "^4.4.0",
     "serve": "^11.3.0"
