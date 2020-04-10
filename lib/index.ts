@@ -14,6 +14,9 @@ export const Hour = Minute * 60
 class Time {
     _core: dayjs.Dayjs
     constructor(dayValue: dayjs.Dayjs) {
+        if (!dayValue.isValid()) {
+            throw new Error("og/time: new Time() error " + dayValue.toString())
+        }
         this._core = dayValue
     }
     add(duration :number) :Time {
@@ -25,8 +28,11 @@ class Time {
         const time = this.clone()
         time._core = time._core.add(years, "year")
             .add(months, "month")
-            .add(days, "month")
+            .add(days, "day")
         return time
+    }
+    msTimestamp():number {
+        return this._core.valueOf()
     }
     format(layout:string) :string {
         return this._core.format(layout)
@@ -35,7 +41,7 @@ class Time {
         const day = this._core.clone()
         return new Time(day)
     }
-    utcOffset(offset:utcOffset):Time {
+    utcOffset(offset:iUtcOffset):Time {
         const time = this.clone()
         // @ts-ignore
         time._core = time._core.utcOffset(offset._minute)
@@ -46,6 +52,21 @@ class Time {
     }
     toJapan() :Time {
         return this.utcOffset(UtcOffset(9))
+    }
+    ms() :number {
+        return this._core.millisecond()
+    }
+    second():number {
+        return this._core.second()
+    }
+    minute():number {
+        return this._core.minute()
+    }
+    hour():number {
+        return this._core.hour()
+    }
+    dayOfMonth():number {
+        return this._core.date()
     }
 }
 
@@ -72,55 +93,81 @@ function minteToUTCZone(minute:number) :string {
     return symbol + hourValue + minuteValue
 }
 // please use otime.UtcOffset(hour) create utcOffset
-interface utcOffset {
+interface iUtcOffset {
     _minute:number
-    _note: string
+    don_not_write_the_interface_yourself_please_use_otime_function_UtcOffset: string
 }
-export function UtcOffset (hour:number) :utcOffset {
+export function UtcOffset (hour:number) :iUtcOffset {
     return {
         _minute: hour*60,
-        _note: "",
+        don_not_write_the_interface_yourself_please_use_otime_function_UtcOffset: "",
+    }
+}
+function utcOffsetMinute(minute:number) :iUtcOffset {
+    return {
+        _minute: minute,
+        don_not_write_the_interface_yourself_please_use_otime_function_UtcOffset: "",
     }
 }
 // 时区列表 https://zh.wikipedia.org/wiki/%E6%97%B6%E5%8C%BA%E5%88%97%E8%A1%A8
-export function parseUTCOffset(data:iParseData, utcOffset: utcOffset) :Time {
-    const time = new Time(dayjs())
+export function parseUTCOffset(data:iParseData, utcOffset: iUtcOffset) :Time {
     if (data.date == "") {
         throw new Error("@og/time parseChina(data) data.date can not be empty string")
     }
-    time._core = dayjs(data.date + minteToUTCZone(utcOffset._minute), {
+    const dayValue = dayjs(data.date + minteToUTCZone(utcOffset._minute), {
         format: data.layout+"ZZ",
         utc: true,
     })
-    // @ts-ignore
-    time._core = time._core.utcOffset(utcOffset._minute)
+    const time = new Time(dayValue)
+    time.utcOffset(utcOffset)
     return time
 }
 // 时区列表 https://zh.wikipedia.org/wiki/%E6%97%B6%E5%8C%BA%E5%88%97%E8%A1%A8
-export function parseUTC(data:iParseData, offsetHour:number): Time {
-    return parseUTCOffset(data, UtcOffset(offsetHour))
+export function parseUTC(data:iParseData, utcOffset:iUtcOffset): Time {
+    return parseUTCOffset(data, utcOffset)
+}
+export function parseLocal(data:iParseData):Time {
+    return parseUTC(data, localUtcOffset())
 }
 export function parseChina(data:iParseData): Time {
-    return parseUTC(data, 8)
+    return parseUTC(data, UtcOffset(8))
 }
 export function parseJapan(data:iParseData): Time {
     data = Object.assign({}, data)
-    return parseUTC(data, 9)
+    return parseUTC(data, UtcOffset(9))
 }
-export function nowUTC() :Time {
-    return new Time(dayjs()).utcOffset(UtcOffset(0))
+export function parseMSTimestampUTC(msTimestamp:number, utcOffset:iUtcOffset) {
+    return new Time(dayjs(msTimestamp)).utcOffset(utcOffset)
+}
+export function parseMSTimestampLocal(msTimestamp:number) {
+    return parseMSTimestampUTC(msTimestamp, localUtcOffset())
+}
+export function parseMSTimestampChina(timestamp:number) {
+    return parseMSTimestampUTC(timestamp, UtcOffset(8))
+}
+export function parseMSTimestampJapan(timestamp:number) {
+    return parseMSTimestampUTC(timestamp, UtcOffset(9))
+}
+export function nowUTC(utcOffset:iUtcOffset) :Time {
+    return new Time(dayjs()).utcOffset(utcOffset)
+}
+export function localUtcOffset() :iUtcOffset {
+    return utcOffsetMinute(dayjs().utcOffset())
+}
+export function nowLocal() {
+    return new Time(dayjs()).utcOffset(localUtcOffset())
 }
 export function nowChina() :Time {
-    return new Time(dayjs()).utcOffset(UtcOffset(8))
+    return nowUTC(UtcOffset(8))
 }
 export function nowJapan() :Time {
-    return new Time(dayjs()).utcOffset(UtcOffset(9))
+    return nowUTC(UtcOffset(9))
 }
 export const MillisecondLayout = "YYYY-MM-DD HH:mm:ss.SSS"
 export const SecondLayout = "YYYY-MM-DD HH:mm:ss"
 export const MinuteLayout = "YYYY-MM-DD HH:mm"
 export const HourLayout = "YYYY-MM-DD HH"
-export const DayLayout = "YYYY-MM-DD"
+export const DateLayout = "YYYY-MM-DD"
 export const MonthLayout = "YYYY-MM"
 export const YearLayout = "YYYY"
 export const RFC3339Layout = "YYYY-MM-DDTHH:mm:ssZ"
